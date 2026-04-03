@@ -1,0 +1,60 @@
+name: Add product to AliExpress cart
+
+on:
+  workflow_dispatch:
+    inputs:
+      search_term:
+        description: "Texto a buscar en AliExpress"
+        required: true
+        default: "auriculares bluetooth"
+      product_index:
+        description: "Índice del resultado a abrir"
+        required: true
+        default: "0"
+      base_url:
+        description: "URL base de AliExpress"
+        required: true
+        default: "https://es.aliexpress.com/"
+      headless:
+        description: "Ejecutar sin UI"
+        required: true
+        default: "true"
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run automation
+        env:
+          ALIEXPRESS_BASE_URL: ${{ inputs.base_url }}
+          SEARCH_TERM: ${{ inputs.search_term }}
+          PRODUCT_INDEX: ${{ inputs.product_index }}
+          HEADLESS: ${{ inputs.headless }}
+          STATE_JSON_B64: ${{ secrets.ALIEXPRESS_STATE_JSON_B64 }}
+        run: npm run run:web
+
+      - name: Upload screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: santa-xpress-artifacts
+          path: |
+            artifacts/**
+            test-results/**
+            playwright-report/**
